@@ -1,0 +1,522 @@
+{
+  "pharmacy": {
+    "name": "MediTrackr Health Pharmacy",
+    "tagline": "Smart Healthcare & Inter-Hospital Exchange",
+    "phone": "+91 98765 43210",
+    "email": "billing@meditrackr.in",
+    "address": "Shop 12-14, Green Park Medical Enclave, Andheri West, Mumbai, Maharashtra 400053",
+    "gstin": "27AABCM8821K1ZP",
+    "dlNo": "MH-MZ4-20B-184920 / 21B-184921",
+    "upiId": "meditrackr@okhdfcbank",
+    "currency": "INR",
+    "currencySymbol": "₹"
+  },
+  "users": [
+    {
+      "id": "usr_1",
+      "name": "Dr. Shruti Shedge",
+      "phone": "9876543210",
+      "email": "shruti@meditrackr.in",
+      "role": "Head Pharmacist & Administrator",
+      "pin": "1234",
+      "hospitalId": "hosp_1"
+    },
+    {
+      "id": "usr_2",
+      "name": "Counter Staff (Billing)",
+      "phone": "9123456780",
+      "email": "counter@meditrackr.in",
+      "role": "Billing Executive",
+      "pin": "0000",
+      "hospitalId": "hosp_1"
+    }
+  ],
+  "hospitals": [
+    {
+      "id": "hosp_1",
+      "name": "MediTrackr Health Pharmacy & Hospital",
+      "city": "Mumbai",
+      "state": "Maharashtra",
+      "contactPerson": "Dr. Shruti Shedge",
+      "phone": "+91 98765 43210",
+      "isCurrent": true,
+      "type": "Private Super-Speciality",
+      "verified": true
+    },
+    {
+      "id": "hosp_2",
+      "name": "Apex Charitable Hospital & Dispensary",
+      "city": "Pune",
+      "state": "Maharashtra",
+      "contactPerson": "Dr. R. K. Joshi",
+      "phone": "+91 98220 11223",
+      "isCurrent": false,
+      "type": "Charitable Trust",
+      "verified": true
+    },
+    {
+      "id": "hosp_3",
+      "name": "LifeLine Multi-Care Hospital",
+      "city": "Thane",
+      "state": "Maharashtra",
+      "contactPerson": "Dr. Ananya Roy",
+      "phone": "+91 97690 44556",
+      "isCurrent": false,
+      "type": "District Hospital",
+      "verified": true
+    },
+    {
+      "id": "hosp_4",
+      "name": "Sanjeevani Gramin Healthcare Center",
+      "city": "Satara",
+      "state": "Maharashtra",
+      "contactPerson": "Dr. V. Patil",
+      "phone": "+91 94220 88990",
+      "isCurrent": false,
+      "type": "Rural Primary Health Center",
+      "verified": true
+    }
+  ],
+  "medicines": [
+    {
+      "id": "med_1",
+      "name": "Dolo 650 Tablet",
+      "composition": "Paracetamol 650mg",
+      "manufacturer": "Micro Labs Ltd",
+      "category": "Analgesic / Antipyretic",
+      "hsn": "30049060",
+      "gstRate": 12,
+      "shelfLocation": "Rack A-01",
+      "unitsPerStrip": 15,
+      "batches": [
+        {
+          "batchNo": "DL650-B92",
+          "expiryDate": "2028-01-12",
+          "mrp": 34,
+          "costPrice": 24.5,
+          "sellingPrice": 32,
+          "stockStrips": 43,
+          "stockTablets": 645
+        },
+        {
+          "batchNo": "DL650-B88",
+          "expiryDate": "2027-01-02",
+          "mrp": 32,
+          "costPrice": 22,
+          "sellingPrice": 28,
+          "stockStrips": 12,
+          "stockTablets": 180
+        }
+      ]
+    },
+    {
+      "id": "med_2",
+      "name": "Augmentin 625 Duo Tablet",
+      "composition": "Amoxicillin 500mg + Clavulanic Acid 125mg",
+      "manufacturer": "GlaxoSmithKline Pharmaceuticals",
+      "category": "Antibiotic",
+      "hsn": "30041010",
+      "gstRate": 12,
+      "shelfLocation": "Rack B-04",
+      "unitsPerStrip": 10,
+      "batches": [
+        {
+          "batchNo": "AUG-7721",
+          "expiryDate": "2027-10-04",
+          "mrp": 201.5,
+          "costPrice": 155,
+          "sellingPrice": 190,
+          "stockStrips": 25,
+          "stockTablets": 250
+        },
+        {
+          "batchNo": "AUG-7104",
+          "expiryDate": "2026-12-26",
+          "mrp": 198,
+          "costPrice": 140,
+          "sellingPrice": 175,
+          "stockStrips": 8,
+          "stockTablets": 80
+        }
+      ]
+    },
+    {
+      "id": "med_3",
+      "name": "Pantocid 40 Tablet",
+      "composition": "Pantoprazole Gastro-Resistant 40mg",
+      "manufacturer": "Sun Pharma Laboratories",
+      "category": "Antacid / PPI",
+      "hsn": "30049099",
+      "gstRate": 12,
+      "shelfLocation": "Rack A-08",
+      "unitsPerStrip": 15,
+      "batches": [
+        {
+          "batchNo": "PTC-4091",
+          "expiryDate": "2028-05-11",
+          "mrp": 168,
+          "costPrice": 118,
+          "sellingPrice": 155,
+          "stockStrips": 60,
+          "stockTablets": 900
+        }
+      ]
+    },
+    {
+      "id": "med_4",
+      "name": "Azithral 500 Tablet",
+      "composition": "Azithromycin IP 500mg",
+      "manufacturer": "Alembic Pharmaceuticals",
+      "category": "Antibiotic",
+      "hsn": "30042039",
+      "gstRate": 12,
+      "shelfLocation": "Rack B-02",
+      "unitsPerStrip": 5,
+      "batches": [
+        {
+          "batchNo": "AZT-8812",
+          "expiryDate": "2026-12-13",
+          "mrp": 125,
+          "costPrice": 90,
+          "sellingPrice": 115,
+          "stockStrips": 5,
+          "stockTablets": 25
+        }
+      ]
+    },
+    {
+      "id": "med_5",
+      "name": "Telma 40 Tablet",
+      "composition": "Telmisartan IP 40mg",
+      "manufacturer": "Glenmark Pharmaceuticals",
+      "category": "Antihypertensive",
+      "hsn": "30049099",
+      "gstRate": 12,
+      "shelfLocation": "Rack C-01",
+      "unitsPerStrip": 15,
+      "batches": [
+        {
+          "batchNo": "TLM-3320",
+          "expiryDate": "2027-12-23",
+          "mrp": 220,
+          "costPrice": 165,
+          "sellingPrice": 205,
+          "stockStrips": 30,
+          "stockTablets": 450
+        }
+      ]
+    },
+    {
+      "id": "med_6",
+      "name": "Glycomet 500 SR Tablet",
+      "composition": "Metformin Hydrochloride Sustained Release 500mg",
+      "manufacturer": "USV Private Limited",
+      "category": "Antidiabetic",
+      "hsn": "30049099",
+      "gstRate": 12,
+      "shelfLocation": "Rack C-05",
+      "unitsPerStrip": 20,
+      "batches": [
+        {
+          "batchNo": "GLY-9014",
+          "expiryDate": "2026-12-06",
+          "mrp": 52,
+          "costPrice": 35,
+          "sellingPrice": 48,
+          "stockStrips": 4,
+          "stockTablets": 80
+        }
+      ]
+    },
+    {
+      "id": "med_7",
+      "name": "Cetirizine 10mg (Cetzine)",
+      "composition": "Cetirizine Hydrochloride 10mg",
+      "manufacturer": "Dr. Reddy's Laboratories",
+      "category": "Antihistamine / Allergy",
+      "hsn": "30049099",
+      "gstRate": 12,
+      "shelfLocation": "Rack A-03",
+      "unitsPerStrip": 10,
+      "batches": [
+        {
+          "batchNo": "CTZ-2210",
+          "expiryDate": "2027-12-03",
+          "mrp": 24.5,
+          "costPrice": 15,
+          "sellingPrice": 22,
+          "stockStrips": 8,
+          "stockTablets": 80
+        }
+      ]
+    },
+    {
+      "id": "med_1794987957490",
+      "name": "Amoxyclav 625mg",
+      "composition": "Amoxicillin + Clavulanate Potassium",
+      "manufacturer": "Alkem Laboratories",
+      "category": "Antibiotic",
+      "hsn": "30049099",
+      "gstRate": 12,
+      "shelfLocation": "Rack B-09",
+      "unitsPerStrip": 10,
+      "batches": [
+        {
+          "batchNo": "AMX-9901",
+          "expiryDate": "2027-06-30",
+          "mrp": 180,
+          "costPrice": 130,
+          "sellingPrice": 180,
+          "stockStrips": 20,
+          "stockTablets": 200
+        },
+        {
+          "batchNo": "AMX-9902",
+          "expiryDate": "2027-09-30",
+          "mrp": 185,
+          "costPrice": 135,
+          "sellingPrice": 185,
+          "stockStrips": 15,
+          "stockTablets": 150
+        }
+      ]
+    }
+  ],
+  "bills": [
+    {
+      "id": "bill_1002",
+      "invoiceNo": "INV-2026-0002",
+      "date": "2026-11-17",
+      "customerName": "Pooja Deshmukh",
+      "customerPhone": "+91 99300 78912",
+      "doctorName": "Dr. S. Patil (MBBS)",
+      "items": [
+        {
+          "medicineId": "med_2",
+          "name": "Augmentin 625 Duo Tablet",
+          "batchNo": "AUG-7721",
+          "expiryDate": "2027-10-04",
+          "unit": "strip",
+          "quantity": 1,
+          "rate": 190,
+          "gstRate": 12,
+          "total": 190
+        }
+      ],
+      "subtotal": 190,
+      "discountPercent": 0,
+      "discountAmount": 0,
+      "taxableAmount": 169.64,
+      "cgst": 10.18,
+      "sgst": 10.18,
+      "roundOff": 0,
+      "grandTotal": 190,
+      "paymentMethod": "Cash",
+      "paymentStatus": "PAID",
+      "createdBy": "Counter Staff"
+    },
+    {
+      "id": "bill_1001",
+      "invoiceNo": "INV-2026-0001",
+      "date": "2026-11-16",
+      "customerName": "Rajesh Sharma",
+      "customerPhone": "+91 98200 45678",
+      "doctorName": "Dr. V. K. Mehta (MD)",
+      "items": [
+        {
+          "medicineId": "med_1",
+          "name": "Dolo 650 Tablet",
+          "batchNo": "DL650-B92",
+          "expiryDate": "2028-01-12",
+          "unit": "strip",
+          "quantity": 2,
+          "rate": 32,
+          "gstRate": 12,
+          "total": 64
+        },
+        {
+          "medicineId": "med_3",
+          "name": "Pantocid 40 Tablet",
+          "batchNo": "PTC-4091",
+          "expiryDate": "2028-05-11",
+          "unit": "strip",
+          "quantity": 1,
+          "rate": 155,
+          "gstRate": 12,
+          "total": 155
+        }
+      ],
+      "subtotal": 219,
+      "discountPercent": 5,
+      "discountAmount": 10.95,
+      "taxableAmount": 208.05,
+      "cgst": 12.48,
+      "sgst": 12.48,
+      "roundOff": 0.99,
+      "grandTotal": 234,
+      "paymentMethod": "UPI",
+      "paymentStatus": "PAID",
+      "createdBy": "Dr. Shruti Shedge"
+    },
+    {
+      "id": "bill_1794987957495",
+      "invoiceNo": "INV-2026-0003",
+      "date": "2026-11-18T07:45:57.495Z",
+      "customerName": "Sunil Gavaskar",
+      "customerPhone": "+91 98200 99881",
+      "doctorName": "Dr. B. C. Roy (MD)",
+      "items": [
+        {
+          "medicineId": "med_1",
+          "name": "Dolo 650 Tablet",
+          "batchNo": "DL650-B92",
+          "expiryDate": "2027-01-15",
+          "unit": "strip",
+          "quantity": 2,
+          "rate": 32,
+          "gstRate": 12,
+          "total": 64
+        }
+      ],
+      "subtotal": 64,
+      "discountPercent": 10,
+      "discountAmount": 6.4,
+      "taxableAmount": 57.6,
+      "cgst": 3.84,
+      "sgst": 3.84,
+      "roundOff": -0.28,
+      "grandTotal": 65,
+      "paymentMethod": "UPI",
+      "paymentStatus": "PAID",
+      "createdBy": "MediTrackr Staff"
+    }
+  ],
+  "exchangeListings": [
+    {
+      "id": "ex_1794987957537",
+      "hospitalId": "hosp_1",
+      "hospitalName": "MediTrackr Health Pharmacy",
+      "city": "Mumbai",
+      "medicineName": "Pantocid 40 Injection",
+      "composition": "Pantoprazole IV 40mg",
+      "batchNo": "PTC-IV-229",
+      "manufacturer": "Sun Pharma",
+      "expiryDate": "2026-12-31",
+      "quantityStrips": 50,
+      "unitsPerStrip": 10,
+      "originalMrp": 55,
+      "type": "DONATION",
+      "discountPercent": 0,
+      "listingPricePerStrip": 0,
+      "urgency": "HIGH",
+      "notes": "Surplus OT lot donated free for charitable use.",
+      "status": "CLAIMED",
+      "listedDate": "2026-11-18T07:45:57.537Z"
+    },
+    {
+      "id": "ex_4",
+      "hospitalId": "hosp_1",
+      "hospitalName": "MediTrackr Health Pharmacy & Hospital",
+      "city": "Mumbai",
+      "medicineName": "Glycomet 500 SR Tablet",
+      "composition": "Metformin Hydrochloride SR 500mg",
+      "batchNo": "GLY-9014",
+      "manufacturer": "USV Ltd",
+      "expiryDate": "2026-12-06",
+      "quantityStrips": 4,
+      "unitsPerStrip": 20,
+      "originalMrp": 52,
+      "type": "DONATION",
+      "listingPricePerStrip": 0,
+      "urgency": "CRITICAL",
+      "notes": "Expiring in 18 days. Free for immediate dispense to patients in need.",
+      "status": "AVAILABLE",
+      "listedDate": "2026-11-18"
+    },
+    {
+      "id": "ex_3",
+      "hospitalId": "hosp_4",
+      "hospitalName": "Sanjeevani Gramin Healthcare Center",
+      "city": "Satara",
+      "medicineName": "Human Actrapid Insulin 100IU/ml 10ml Vial",
+      "composition": "Soluble Insulin (rDNA origin)",
+      "batchNo": "ACT-8842",
+      "manufacturer": "Novo Nordisk",
+      "expiryDate": "2026-12-28",
+      "quantityStrips": 15,
+      "unitsPerStrip": 1,
+      "originalMrp": 165,
+      "type": "DONATION",
+      "listingPricePerStrip": 0,
+      "urgency": "CRITICAL",
+      "notes": "Free for diabetic patient welfare camp. Maintained under cold chain (2-8°C).",
+      "status": "AVAILABLE",
+      "listedDate": "2026-11-17"
+    },
+    {
+      "id": "ex_1",
+      "hospitalId": "hosp_2",
+      "hospitalName": "Apex Charitable Hospital & Dispensary",
+      "city": "Pune",
+      "medicineName": "Augmentin 625 Duo Tablet",
+      "composition": "Amoxicillin 500mg + Clavulanic Acid 125mg",
+      "batchNo": "AUG-6610",
+      "manufacturer": "GlaxoSmithKline",
+      "expiryDate": "2027-01-12",
+      "quantityStrips": 40,
+      "unitsPerStrip": 10,
+      "originalMrp": 201.5,
+      "type": "DONATION",
+      "listingPricePerStrip": 0,
+      "urgency": "HIGH",
+      "notes": "Surplus lot from ICU ward. Available for immediate pickup or courier by any rural trust or clinic.",
+      "status": "AVAILABLE",
+      "listedDate": "2026-11-15"
+    },
+    {
+      "id": "ex_2",
+      "hospitalId": "hosp_3",
+      "hospitalName": "LifeLine Multi-Care Hospital",
+      "city": "Thane",
+      "medicineName": "Azithral 500 Tablet",
+      "composition": "Azithromycin IP 500mg",
+      "batchNo": "AZT-7190",
+      "manufacturer": "Alembic Pharma",
+      "expiryDate": "2027-01-17",
+      "quantityStrips": 35,
+      "unitsPerStrip": 5,
+      "originalMrp": 125,
+      "type": "SALE",
+      "discountPercent": 70,
+      "listingPricePerStrip": 37.5,
+      "urgency": "MEDIUM",
+      "notes": "Liquidating excess stock due to seasonal shift. Great value for high footfall outpatient OPDs.",
+      "status": "AVAILABLE",
+      "listedDate": "2026-11-16"
+    }
+  ],
+  "exchangeClaims": [
+    {
+      "id": "clm_1794987957540",
+      "listingId": "ex_1794987957537",
+      "claimedByHospitalId": "hosp_1",
+      "claimedByHospitalName": "Apex Charitable Hospital & Dispensary (Pune)",
+      "contactPhone": "+91 98220 11223",
+      "requestDate": "2026-11-18T07:45:57.540Z",
+      "status": "APPROVED_DISPATCHED",
+      "dispatchWaybill": "VRL-EXPRESS-460462",
+      "message": "Claimed for our free charitable dispensary camp."
+    },
+    {
+      "id": "clm_1",
+      "listingId": "ex_1",
+      "claimedByHospitalId": "hosp_4",
+      "claimedByHospitalName": "Sanjeevani Gramin Healthcare Center (Satara)",
+      "contactPhone": "+91 94220 88990",
+      "requestDate": "2026-11-17",
+      "status": "APPROVED_DISPATCHED",
+      "dispatchWaybill": "VRL-LOGISTICS-778812",
+      "message": "Claimed for our weekly rural free health camp."
+    }
+  ]
+}
