@@ -1,0 +1,642 @@
+diff --git a/barcodeCatalog.js b/barcodeCatalog.js
+new file mode 100644
+index 0000000..3840e03
+--- /dev/null
++++ b/barcodeCatalog.js
+@@ -0,0 +1,21 @@
++// ========================================================
++// MediTrackr Demo Barcode Catalogue (IoT simulation)
++// --------------------------------------------------------
++// Sample data only. Barcodes and batch numbers are NOT real
++// manufacturer values. In production this would be replaced
++// by a GS1 / distributor master-data lookup.
++// ========================================================
++
++const CATALOG = [
++  { barcode: '8901234567890', name: 'Dolo 650 Tablet', composition: 'Paracetamol 650mg', manufacturer: 'Micro Labs Ltd', category: 'Analgesic / Antipyretic', batchNo: 'DEMO-DL650-26', expiryDate: '2028-12-31', mrp: 35, costPrice: 25, sellingPrice: 32, unitsPerStrip: 15 },
++  { barcode: '8901234567891', name: 'Augmentin 625 Duo Tablet', composition: 'Amoxicillin 500mg + Clavulanic Acid 125mg', manufacturer: 'GlaxoSmithKline Pharmaceuticals', category: 'Antibiotic', batchNo: 'DEMO-AUG625-26', expiryDate: '2028-10-31', mrp: 205, costPrice: 158, sellingPrice: 190, unitsPerStrip: 10 },
++  { barcode: '8901234567892', name: 'Pantocid 40 Tablet', composition: 'Pantoprazole Gastro-Resistant 40mg', manufacturer: 'Sun Pharma Laboratories', category: 'Antacid / PPI', batchNo: 'DEMO-PTC40-26', expiryDate: '2028-09-30', mrp: 170, costPrice: 120, sellingPrice: 155, unitsPerStrip: 15 },
++  { barcode: '8901234567893', name: 'Telma 40 Tablet', composition: 'Telmisartan IP 40mg', manufacturer: 'Glenmark Pharmaceuticals', category: 'Antihypertensive', batchNo: 'DEMO-TLM40-26', expiryDate: '2028-11-30', mrp: 225, costPrice: 168, sellingPrice: 205, unitsPerStrip: 15 }
++];
++
++function findByBarcode(code) {
++  const clean = String(code || '').trim();
++  return CATALOG.find(item => item.barcode === clean) || null;
++}
++
++module.exports = { CATALOG, findByBarcode };
+diff --git a/iot/sketch.ino b/iot/sketch.ino
+new file mode 100644
+index 0000000..ced8b0d
+--- /dev/null
++++ b/iot/sketch.ino
+@@ -0,0 +1,172 @@
++// ============================================================
++// MediTrackr - ESP32 barcode scanner node (Wokwi simulation)
++//
++// Press the button  -> the ESP32 "scans" the next demo barcode and
++//                      POSTs it to MediTrackr (/api/barcode/scan).
++// LED               -> blinks twice = medicine matched,
++//                      one long pulse = barcode unknown / request failed.
++//
++// IMPORTANT: Wokwi runs in the cloud, so it can NOT reach
++// http://localhost:3000. Set SERVER_URL to a public address
++// (deployed Render/Railway URL, or an ngrok / cloudflared tunnel).
++// ============================================================
++
++#include <WiFi.h>
++#include <WiFiClientSecure.h>
++#include <HTTPClient.h>
++
++// ---- Edit these -------------------------------------------------
++const char* WIFI_SSID = "Wokwi-GUEST";   // Wokwi's built-in open network
++const char* WIFI_PASS = "";
++const int   WIFI_CHANNEL = 6;            // speeds up connection in Wokwi
++
++// Public URL of your MediTrackr server, NO trailing slash
++const char* SERVER_URL = "https://YOUR-PUBLIC-URL.example.com";
++const char* DEVICE_ID  = "wokwi-esp32";
++const char* DEVICE_KEY = "";             // only if you set DEVICE_KEY in .env
++
++// Match these to the pins used in your diagram.json
++const int LED_PIN    = 2;
++const int BUTTON_PIN = 4;                // button between this pin and GND
++// -----------------------------------------------------------------
++
++// Demo barcodes (same as barcodeCatalog.js on the server)
++const char* BARCODES[] = {
++  "8901234567890",
++  "8901234567891",
++  "8901234567892",
++  "8901234567893"
++};
++const int BARCODE_COUNT = sizeof(BARCODES) / sizeof(BARCODES[0]);
++int nextBarcode = 0;
++
++const char* wifiStatusName(wl_status_t s) {
++  switch (s) {
++    case WL_IDLE_STATUS:     return "IDLE";
++    case WL_NO_SSID_AVAIL:   return "NO_SSID_AVAIL (network not found)";
++    case WL_SCAN_COMPLETED:  return "SCAN_COMPLETED";
++    case WL_CONNECTED:       return "CONNECTED";
++    case WL_CONNECT_FAILED:  return "CONNECT_FAILED";
++    case WL_CONNECTION_LOST: return "CONNECTION_LOST";
++    case WL_DISCONNECTED:    return "DISCONNECTED";
++    default:                 return "UNKNOWN";
++  }
++}
++
++void blink(int times, int onMs, int offMs) {
++  for (int i = 0; i < times; i++) {
++    digitalWrite(LED_PIN, HIGH);
++    delay(onMs);
++    digitalWrite(LED_PIN, LOW);
++    delay(offMs);
++  }
++}
++
++bool connectWifi(unsigned long timeoutMs) {
++  WiFi.mode(WIFI_STA);
++  WiFi.disconnect(true);
++  delay(100);
++
++  Serial.printf("Connecting to %s ...\n", WIFI_SSID);
++  WiFi.begin(WIFI_SSID, WIFI_PASS, WIFI_CHANNEL);
++
++  unsigned long start = millis();
++  while (WiFi.status() != WL_CONNECTED && millis() - start < timeoutMs) {
++    delay(500);
++    Serial.printf("  status: %s\n", wifiStatusName(WiFi.status()));
++  }
++
++  if (WiFi.status() == WL_CONNECTED) {
++    Serial.print("WiFi connected, IP: ");
++    Serial.println(WiFi.localIP());
++    return true;
++  }
++  Serial.println("WiFi connect timed out.");
++  return false;
++}
++
++// Sends one barcode to MediTrackr. Returns true if the medicine matched.
++bool sendScan(const char* barcode) {
++  String url = String(SERVER_URL) + "/api/barcode/scan";
++  String body = String("{\"barcode\":\"") + barcode + "\",\"deviceId\":\"" + DEVICE_ID + "\"}";
++
++  WiFiClientSecure secureClient;
++  WiFiClient plainClient;
++  HTTPClient http;
++  http.setTimeout(15000);
++
++  bool began;
++  if (url.startsWith("https://")) {
++    secureClient.setInsecure();          // fine for a class demo; use certs in production
++    began = http.begin(secureClient, url);
++  } else {
++    began = http.begin(plainClient, url);
++  }
++  if (!began) {
++    Serial.println("http.begin() failed - check SERVER_URL");
++    return false;
++  }
++
++  http.addHeader("Content-Type", "application/json");
++  if (strlen(DEVICE_KEY) > 0) http.addHeader("x-device-key", DEVICE_KEY);
++
++  int code = http.POST(body);
++  Serial.printf("POST %s -> HTTP %d\n", url.c_str(), code);
++
++  bool matched = false;
++  if (code > 0) {
++    String resp = http.getString();
++    matched = resp.indexOf("\"matched\":true") >= 0;
++
++    // Pull the medicine name out without needing a JSON library
++    int n = resp.indexOf("\"name\":\"");
++    if (matched && n >= 0) {
++      n += 8;
++      int e = resp.indexOf("\"", n);
++      Serial.println("Identified: " + resp.substring(n, e));
++    } else if (!matched) {
++      Serial.println("Barcode not recognised by server.");
++    }
++  } else {
++    Serial.println(http.errorToString(code));
++  }
++
++  http.end();
++  return matched;
++}
++
++void setup() {
++  Serial.begin(115200);
++  pinMode(LED_PIN, OUTPUT);
++  pinMode(BUTTON_PIN, INPUT_PULLUP);
++
++  if (!connectWifi(20000)) {
++    Serial.println("Will retry when the button is pressed.");
++    blink(5, 100, 100);
++  } else {
++    blink(1, 300, 100);
++  }
++  Serial.println("Ready. Press the button to scan a medicine.");
++}
++
++void loop() {
++  if (digitalRead(BUTTON_PIN) == LOW) {     // pressed
++    delay(40);                              // debounce
++    if (digitalRead(BUTTON_PIN) == LOW) {
++      const char* code = BARCODES[nextBarcode];
++      nextBarcode = (nextBarcode + 1) % BARCODE_COUNT;
++      Serial.printf("\nScanning barcode %s\n", code);
++
++      if (WiFi.status() != WL_CONNECTED && !connectWifi(10000)) {
++        blink(1, 800, 100);
++      } else if (sendScan(code)) {
++        blink(2, 150, 150);                 // success
++      } else {
++        blink(1, 800, 100);                 // unknown barcode / failure
++      }
++
++      while (digitalRead(BUTTON_PIN) == LOW) delay(10);   // wait for release
++    }
++  }
++  delay(10);
++}
+diff --git a/public/app.js b/public/app.js
+index ceb2383..85b073a 100644
+--- a/public/app.js
++++ b/public/app.js
+@@ -13,7 +13,10 @@ const state = {
+   currentBillItems: [],
+   activeBillForPrint: null,
+   ocrParsedItems: [],
+-  exchangeFilter: 'ALL'
++  exchangeFilter: 'ALL',
++  scannedMedicine: null,
++  lastSeenScanId: null,
++  barcodePoller: null
+ };
+ 
+ // Initialize Application
+@@ -65,6 +68,9 @@ function switchTab(tabId) {
+   if (tabId === 'inventory') loadInventory();
+   if (tabId === 'history') loadBillsHistory();
+   if (tabId === 'exchange') loadExchangeListings();
++
++  if (tabId === 'barcode') startBarcodePolling();
++  else stopBarcodePolling();
+ }
+ 
+ function toggleDarkMode() {
+@@ -1135,3 +1141,163 @@ function reprintBill(billId) {
+     openPrintModal(bill);
+   }
+ }
++
++
++// -------------------------------------------------------------
++// BARCODE SCANNER (IoT simulation + ESP32 live feed)
++// -------------------------------------------------------------
++function bcSetStatus(id, message, type) {
++  const el = document.getElementById(id);
++  if (!el) return;
++  const styles = {
++    ok: 'bg-emerald-50 text-emerald-700',
++    error: 'bg-red-50 text-red-700',
++    info: 'bg-blue-50 text-blue-700'
++  };
++  el.className = 'text-xs rounded-lg px-3 py-2 ' + (styles[type] || styles.info);
++  el.textContent = message;
++}
++
++function bcFormatDate(iso) {
++  return new Date(iso + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
++}
++
++function showScannedMedicine(med) {
++  state.scannedMedicine = med;
++  document.getElementById('bcEmpty').classList.add('hidden');
++  document.getElementById('bcDetails').classList.remove('hidden');
++  document.getElementById('bcName').textContent = med.name;
++  document.getElementById('bcComposition').textContent = med.composition;
++  document.getElementById('bcBarcode').textContent = med.barcode;
++  document.getElementById('bcBatch').textContent = med.batchNo;
++  document.getElementById('bcExpiry').textContent = bcFormatDate(med.expiryDate);
++  document.getElementById('bcMrp').textContent = '\u20B9' + Number(med.mrp).toFixed(2);
++  document.getElementById('bcQty').value = 10;
++  document.getElementById('bcAddBtn').disabled = false;
++  document.getElementById('bcSaveStatus').className = 'hidden';
++}
++
++function clearScannedMedicine() {
++  state.scannedMedicine = null;
++  document.getElementById('bcDetails').classList.add('hidden');
++  document.getElementById('bcEmpty').classList.remove('hidden');
++}
++
++function applyScanResult(scan, sourceLabel) {
++  document.getElementById('bcManualInput').value = scan.barcode;
++  if (scan.matched && scan.medicine) {
++    showScannedMedicine(scan.medicine);
++    bcSetStatus('bcStatus', 'Medicine matched successfully' + (sourceLabel ? ' (' + sourceLabel + ').' : '.'), 'ok');
++  } else {
++    clearScannedMedicine();
++    bcSetStatus('bcStatus', 'Barcode ' + scan.barcode + ' not found in the demo catalogue.', 'error');
++  }
++}
++
++async function simulateBarcodeScan() {
++  const btn = document.getElementById('bcSimulateBtn');
++  btn.disabled = true;
++  bcSetStatus('bcStatus', 'Scanning...', 'info');
++  try {
++    const res = await fetch('/api/barcode/scan', {
++      method: 'POST',
++      headers: { 'Content-Type': 'application/json' },
++      body: JSON.stringify({ deviceId: 'web-ui' })
++    });
++    const data = await res.json();
++    if (!res.ok || !data.success) throw new Error(data.message || 'Scan failed.');
++    state.lastSeenScanId = data.scan.id;
++    applyScanResult(data.scan, 'simulated scan');
++  } catch (err) {
++    bcSetStatus('bcStatus', err.message || 'Scan failed.', 'error');
++  } finally {
++    btn.disabled = false;
++  }
++}
++
++async function lookupBarcodeManual(event) {
++  event.preventDefault();
++  const code = document.getElementById('bcManualInput').value.trim();
++  if (!code) return;
++  try {
++    const res = await fetch('/api/barcode/' + encodeURIComponent(code));
++    const data = await res.json();
++    if (!res.ok) {
++      clearScannedMedicine();
++      bcSetStatus('bcStatus', 'Barcode not found in the demo catalogue. Try one of the sample barcodes.', 'error');
++      return;
++    }
++    showScannedMedicine(data.medicine);
++    bcSetStatus('bcStatus', 'Medicine matched successfully.', 'ok');
++  } catch (err) {
++    bcSetStatus('bcStatus', 'Lookup failed. Is the server running?', 'error');
++  }
++}
++
++async function addScannedToInventory() {
++  const med = state.scannedMedicine;
++  if (!med) return;
++  const btn = document.getElementById('bcAddBtn');
++  const stockStrips = Number(document.getElementById('bcQty').value);
++  btn.disabled = true;
++  btn.textContent = 'Saving to inventory...';
++  try {
++    const res = await fetch('/api/barcode/' + encodeURIComponent(med.barcode) + '/add', {
++      method: 'POST',
++      headers: { 'Content-Type': 'application/json' },
++      body: JSON.stringify({ stockStrips })
++    });
++    const data = await res.json();
++    if (!res.ok || data.success === false) throw new Error(data.message || 'Inventory save failed.');
++    bcSetStatus('bcSaveStatus', 'Saved. ' + med.name + ' \u00B7 batch ' + med.batchNo + ' is now in inventory.', 'ok');
++    loadInventory();
++    loadDashboard();
++  } catch (err) {
++    bcSetStatus('bcSaveStatus', err.message || 'Could not save this batch.', 'error');
++  } finally {
++    btn.disabled = false;
++    btn.textContent = 'Add batch to inventory';
++  }
++}
++
++// Poll for scans pushed by the ESP32 while the Barcode tab is open.
++async function pollLatestScan() {
++  try {
++    const res = await fetch('/api/barcode/latest');
++    const { scan } = await res.json();
++    const badge = document.getElementById('bcDeviceBadge');
++    if (!scan) return;
++
++    if (state.lastSeenScanId === null) {
++      // First poll after opening the tab: remember, don't replay old scans.
++      state.lastSeenScanId = scan.id;
++      return;
++    }
++    if (scan.id !== state.lastSeenScanId) {
++      state.lastSeenScanId = scan.id;
++      if (scan.deviceId !== 'web-ui') {
++        if (badge) {
++          badge.textContent = 'Device: ' + scan.deviceId + ' \u00B7 live';
++          badge.className = 'text-[11px] font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200';
++        }
++        applyScanResult(scan, 'from ' + scan.deviceId);
++      }
++    }
++  } catch (err) {
++    /* server briefly unreachable; try again on next tick */
++  }
++}
++
++function startBarcodePolling() {
++  if (state.barcodePoller) return;
++  state.lastSeenScanId = null;
++  pollLatestScan();
++  state.barcodePoller = setInterval(pollLatestScan, 2000);
++}
++
++function stopBarcodePolling() {
++  if (state.barcodePoller) {
++    clearInterval(state.barcodePoller);
++    state.barcodePoller = null;
++  }
++}
+diff --git a/public/index.html b/public/index.html
+index ce3195d..fd502f2 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -115,7 +115,12 @@
+         <span>Scan Photo (OCR)</span>
+       </button>
+ 
+-      <button onclick="switchTab('exchange')" id="tabBtn-exchange" class="tab-button flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-md transition text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100">
++      <button onclick="switchTab('barcode')" id="tabBtn-barcode" class="tab-button flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-md transition text-slate-600 dark:text-slate-300 hover:text-brand-800 hover:bg-slate-100 dark:hover:bg-slate-800">
++        <i data-lucide="barcode" class="w-4 h-4"></i>
++        <span>Barcode Scanner (IoT)</span>
++      </button>
++
++      <button onclick="switchTab('exchange')" id="tabBtn-exchange"class="tab-button flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-md transition text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100">
+         <i data-lucide="heart-handshake" class="w-4 h-4"></i>
+         <span>Hospital Donation &amp; Stock Exchange</span>
+         <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+@@ -639,6 +644,73 @@
+     <!-- ======================================================== -->
+     <!-- TAB 5: INTER-HOSPITAL MEDICINE DONATION & EXCHANGE HUB -->
+     <!-- ======================================================== -->
++    <section id="tab-barcode" class="tab-content hidden space-y-6">
++      <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-6">
++        <div class="flex items-start justify-between gap-4 flex-wrap">
++          <div>
++            <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
++              <i data-lucide="barcode" class="w-5 h-5 text-teal-700"></i>
++              <span>Barcode Scanner &mdash; Inventory Intake</span>
++            </h2>
++            <p class="text-xs text-slate-500 mt-1">
++              Scan a strip barcode (simulated, or sent live from the ESP32 device) to identify the medicine and add its batch to inventory.
++            </p>
++          </div>
++          <div class="flex items-center gap-2">
++            <span id="bcDeviceBadge" class="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-500 border border-slate-200">Device: waiting</span>
++            <span class="text-[11px] font-bold px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200">DEMO MODE &middot; simulated barcode data</span>
++          </div>
++        </div>
++
++        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
++          <!-- Scan panel -->
++          <div class="space-y-4">
++            <div class="border-2 border-dashed border-teal-300 dark:border-teal-800 rounded-xl p-6 text-center bg-teal-50/40 dark:bg-slate-900/50 space-y-3">
++              <div class="text-4xl font-extrabold tracking-widest text-teal-700">&#9701; &#9701; &#9701; &#9701;</div>
++              <div class="text-[11px] text-slate-500 uppercase tracking-wide">Ready to scan &middot; no hardware required</div>
++              <button id="bcSimulateBtn" onclick="simulateBarcodeScan()" class="bg-teal-700 hover:bg-teal-800 text-white text-sm font-bold px-5 py-2.5 rounded-lg transition">
++                Simulate Scan
++              </button>
++            </div>
++
++            <form onsubmit="lookupBarcodeManual(event)" class="flex gap-2">
++              <input id="bcManualInput" inputmode="numeric" autocomplete="off" placeholder="Enter barcode number" class="flex-1 min-w-0 border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white rounded-lg px-3 py-2 text-sm">
++              <button type="submit" class="bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:text-white text-teal-800 text-sm font-bold px-4 py-2 rounded-lg transition">Look up</button>
++            </form>
++
++            <div id="bcStatus" class="hidden text-xs rounded-lg px-3 py-2"></div>
++            <p class="text-[11px] text-slate-400">Demo barcodes map to sample records. They are not verified manufacturer barcodes.</p>
++          </div>
++
++          <!-- Details panel -->
++          <div class="border border-slate-200 dark:border-slate-700 rounded-xl p-5">
++            <h3 class="text-sm font-bold text-slate-900 dark:text-white">Medicine details</h3>
++            <div id="bcEmpty" class="text-sm text-slate-400 text-center py-10">No medicine scanned yet.</div>
++            <div id="bcDetails" class="hidden space-y-4 mt-2">
++              <div>
++                <div id="bcName" class="text-xl font-bold text-slate-900 dark:text-white"></div>
++                <div id="bcComposition" class="text-xs text-slate-500"></div>
++              </div>
++              <div class="grid grid-cols-2 gap-3">
++                <div class="p-3 border border-slate-200 dark:border-slate-700 rounded-lg"><span class="block text-[10px] uppercase text-slate-400">Barcode</span><strong id="bcBarcode" class="text-sm"></strong></div>
++                <div class="p-3 border border-slate-200 dark:border-slate-700 rounded-lg"><span class="block text-[10px] uppercase text-slate-400">Batch number</span><strong id="bcBatch" class="text-sm"></strong></div>
++                <div class="p-3 border border-slate-200 dark:border-slate-700 rounded-lg"><span class="block text-[10px] uppercase text-slate-400">Expiry date</span><strong id="bcExpiry" class="text-sm"></strong></div>
++                <div class="p-3 border border-slate-200 dark:border-slate-700 rounded-lg"><span class="block text-[10px] uppercase text-slate-400">MRP</span><strong id="bcMrp" class="text-sm"></strong></div>
++              </div>
++              <div>
++                <label for="bcQty" class="block text-[11px] font-bold text-slate-500 mb-1">Quantity to add (strips)</label>
++                <input id="bcQty" type="number" min="1" step="1" value="10" class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white rounded-lg px-3 py-2 text-sm">
++              </div>
++              <button id="bcAddBtn" onclick="addScannedToInventory()" class="w-full bg-teal-700 hover:bg-teal-800 disabled:opacity-50 text-white text-sm font-bold px-4 py-2.5 rounded-lg transition">
++                Add batch to inventory
++              </button>
++              <div id="bcSaveStatus" class="hidden text-xs rounded-lg px-3 py-2"></div>
++            </div>
++          </div>
++        </div>
++      </div>
++    </section>
++
+     <section id="tab-exchange" class="tab-content hidden space-y-6">
+       
+       <!-- Exchange Banner -->
+diff --git a/server.js b/server.js
+index c98b907..9e7d0cb 100644
+--- a/server.js
++++ b/server.js
+@@ -260,6 +260,111 @@ app.post('/api/inventory/:id/batch', (req, res) => {
+   res.json({ success: true, medicine: updatedMed });
+ });
+ 
++// -------------------------------------------------------------
++// 3b. BARCODE INTAKE (IoT simulation + ESP32 device bridge)
++// -------------------------------------------------------------
++const barcodeCatalog = require('./barcodeCatalog');
++
++// Most recent scan received from an IoT device (ESP32) or the UI.
++// The web UI polls /api/barcode/latest to show device scans live.
++let latestScan = null;
++let scanCounter = 0;
++let simulateCursor = -1;
++
++function publicMedicine(item) {
++  return item ? { ...item } : null;
++}
++
++app.get('/api/barcode/catalog', (req, res) => {
++  res.json(barcodeCatalog.CATALOG.map(publicMedicine));
++});
++
++app.get('/api/barcode/latest', (req, res) => {
++  res.json({ scan: latestScan });
++});
++
++// Called by the ESP32 (or the UI's Simulate Scan button).
++// Body: { barcode?: string, deviceId?: string }
++// If no barcode is sent, the server simulates one by cycling the catalogue.
++app.post('/api/barcode/scan', (req, res) => {
++  const requiredKey = process.env.DEVICE_KEY;
++  if (requiredKey && req.get('x-device-key') !== requiredKey) {
++    return res.status(401).json({ success: false, message: 'Invalid device key' });
++  }
++
++  let code = req.body && req.body.barcode ? String(req.body.barcode).trim() : '';
++  if (!code) {
++    simulateCursor = (simulateCursor + 1) % barcodeCatalog.CATALOG.length;
++    code = barcodeCatalog.CATALOG[simulateCursor].barcode;
++  }
++
++  const medicine = barcodeCatalog.findByBarcode(code);
++  scanCounter += 1;
++  latestScan = {
++    id: scanCounter,
++    barcode: code,
++    deviceId: (req.body && req.body.deviceId) || 'web-ui',
++    receivedAt: new Date().toISOString(),
++    matched: !!medicine,
++    medicine: publicMedicine(medicine)
++  };
++
++  res.json({ success: true, scan: latestScan });
++});
++
++app.get('/api/barcode/:code', (req, res) => {
++  const medicine = barcodeCatalog.findByBarcode(req.params.code);
++  if (!medicine) {
++    return res.status(404).json({ success: false, message: 'Barcode not found in the demo catalogue' });
++  }
++  res.json({ success: true, medicine: publicMedicine(medicine) });
++});
++
++// Add a scanned medicine to inventory.
++// Existing medicine (same name) -> add a new batch. New medicine -> create it.
++app.post('/api/barcode/:code/add', (req, res) => {
++  const med = barcodeCatalog.findByBarcode(req.params.code);
++  if (!med) {
++    return res.status(404).json({ success: false, message: 'Barcode not found in the demo catalogue' });
++  }
++
++  const stockStrips = Number(req.body && req.body.stockStrips);
++  if (!Number.isInteger(stockStrips) || stockStrips < 1) {
++    return res.status(400).json({ success: false, message: 'Enter a valid quantity of at least 1 strip.' });
++  }
++
++  const batch = {
++    batchNo: med.batchNo,
++    expiryDate: med.expiryDate,
++    mrp: med.mrp,
++    costPrice: med.costPrice,
++    sellingPrice: med.sellingPrice,
++    stockStrips
++  };
++
++  const existing = db.getMedicines().find(m => m.name.trim().toLowerCase() === med.name.trim().toLowerCase());
++
++  if (existing) {
++    const duplicate = (existing.batches || []).some(b => String(b.batchNo).toLowerCase() === med.batchNo.toLowerCase());
++    if (duplicate) {
++      return res.status(409).json({ success: false, message: 'This batch is already in inventory. No duplicate was added.' });
++    }
++    const updated = db.addBatch(existing.id, batch);
++    return res.json({ success: true, created: false, medicine: updated });
++  }
++
++  const created = db.addMedicine({
++    name: med.name,
++    composition: med.composition,
++    manufacturer: med.manufacturer,
++    category: med.category,
++    gstRate: 12,
++    unitsPerStrip: med.unitsPerStrip,
++    batches: [{ ...batch, stockTablets: stockStrips * med.unitsPerStrip }]
++  });
++  res.json({ success: true, created: true, medicine: created });
++});
++
+ // -------------------------------------------------------------
+ // 4. BILLING & INVOICE GENERATION
+ // -------------------------------------------------------------
+diff --git a/test.js b/test.js
+index 7add55b..cb91f73 100644
+--- a/test.js
++++ b/test.js
+@@ -178,6 +178,34 @@ async function runTests() {
+     assert(claimRes.status === 200 && claimRes.data.success === true, "Donation lot claimed by recipient hospital");
+     assert(claimRes.data.claim.dispatchWaybill.startsWith("VRL-EXPRESS"), "Dispatch waybill generated for transport");
+ 
++    // 7. BARCODE SCANNER (IoT simulation)
++    console.log("\n[7] Testing Barcode Scanner & Device Bridge...");
++    const catalogRes = await request('GET', '/api/barcode/catalog');
++    assert(catalogRes.status === 200 && catalogRes.data.length >= 4, "Barcode catalogue available for simulation");
++
++    const simRes = await request('POST', '/api/barcode/scan', { deviceId: 'test-esp32' });
++    assert(simRes.status === 200 && simRes.data.scan.matched === true, "Simulated scan identifies a medicine");
++    const m = simRes.data.scan.medicine;
++    assert(m.name && m.batchNo && m.expiryDate && m.mrp > 0, "Scan returns name, batch, expiry and MRP");
++
++    const latestRes = await request('GET', '/api/barcode/latest');
++    assert(latestRes.data.scan && latestRes.data.scan.deviceId === 'test-esp32', "Latest scan is exposed for the UI to poll");
++
++    const lookupRes = await request('GET', '/api/barcode/8901234567891');
++    assert(lookupRes.status === 200 && lookupRes.data.medicine.name.startsWith("Augmentin"), "Manual barcode lookup works");
++
++    const missRes = await request('GET', '/api/barcode/0000000000000');
++    assert(missRes.status === 404, "Unknown barcode returns 404");
++
++    const badQtyRes = await request('POST', '/api/barcode/8901234567890/add', { stockStrips: 0 });
++    assert(badQtyRes.status === 400, "Invalid quantity is rejected");
++
++    const addScanRes = await request('POST', '/api/barcode/8901234567890/add', { stockStrips: 5 });
++    assert(addScanRes.status === 200 && addScanRes.data.success === true, "Scanned medicine added to inventory");
++
++    const dupScanRes = await request('POST', '/api/barcode/8901234567890/add', { stockStrips: 5 });
++    assert(dupScanRes.status === 409, "Duplicate batch is not added twice");
++
+     console.log("\n=================================================");
+     console.log(`  Tests Completed: ${passed} Passed, ${failed} Failed`);
+     console.log("=================================================");
