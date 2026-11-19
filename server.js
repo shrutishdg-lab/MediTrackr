@@ -526,6 +526,64 @@ app.get('/api/exchange/claims', (req, res) => {
   res.json(db.getExchangeClaims());
 });
 
+
+// -------------------------------------------------------------
+// 7. ESP32 BARCODE LOOKUP
+// -------------------------------------------------------------
+
+const DEMO_BARCODE_CATALOG = {
+  "8901234567890": "Dolo 650 Tablet",
+  "8901234567891": "Augmentin 625 Duo Tablet",
+  "8901234567892": "Pantocid 40 Tablet",
+  "8901234567893": "Telma 40 Tablet"
+};
+
+app.get('/api/barcode/:barcode', (req, res) => {
+  const barcode = req.params.barcode;
+  const medicineName = DEMO_BARCODE_CATALOG[barcode];
+
+  if (!medicineName) {
+    return res.status(404).json({
+      success: false,
+      message: "Barcode not found in demo catalogue",
+      barcode
+    });
+  }
+
+  const medicine = db.getMedicines().find(
+    m => m.name.toLowerCase() === medicineName.toLowerCase()
+  );
+
+  if (!medicine) {
+    return res.status(404).json({
+      success: false,
+      message: "Medicine not found in inventory",
+      barcode
+    });
+  }
+
+  const batches = medicine.batches || [];
+  const totalStrips = batches.reduce(
+    (sum, batch) => sum + (Number(batch.stockStrips) || 0), 0
+  );
+
+  res.json({
+    success: true,
+    barcode,
+    medicine: {
+      id: medicine.id,
+      name: medicine.name,
+      composition: medicine.composition,
+      manufacturer: medicine.manufacturer,
+      category: medicine.category,
+      shelfLocation: medicine.shelfLocation,
+      totalStrips,
+      batches
+    }
+  });
+});
+
+
 // Start Server
 app.listen(PORT, () => {
   console.log(`=======================================================`);
